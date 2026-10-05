@@ -1,0 +1,5829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>OPA FMCW LiDAR 第十版</title>
+
+<!-- Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- 鼠标旋转/缩放 -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
+
+<!-- 整页截图 -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    background:#050b15;
+    color:white;
+    font-family:Arial,sans-serif;
+    overflow:hidden;
+}
+
+.app{
+    width:100vw;
+    height:100vh;
+    display:flex;
+}
+
+/* ==============================
+   左侧
+============================== */
+
+.leftArea{
+    width:73%;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+}
+
+.viewer{
+    height:66%;
+    position:relative;
+    background:#050b15;
+}
+
+.title{
+    position:absolute;
+    top:16px;
+    left:20px;
+    z-index:10;
+    font-size:20px;
+    font-weight:bold;
+    color:#dbeafe;
+    pointer-events:none;
+}
+
+.subtitle{
+    position:absolute;
+    top:45px;
+    left:20px;
+    z-index:10;
+    font-size:12px;
+    color:#94a3b8;
+    pointer-events:none;
+}
+
+.overlayStatus{
+    position:absolute;
+    left:18px;
+    bottom:15px;
+    z-index:10;
+
+    background:rgba(17,24,39,0.85);
+
+    padding:10px 12px;
+
+    border-radius:6px;
+
+    font-family:Consolas,monospace;
+
+    font-size:12px;
+
+    line-height:20px;
+
+    pointer-events:none;
+}
+
+/* ==============================
+   下方图表
+============================== */
+
+.signalArea{
+    height:34%;
+
+    display:flex;
+
+    gap:8px;
+
+    padding:8px;
+
+    background:#0b1120;
+}
+
+.chartBox{
+    flex:1;
+
+    min-width:0;
+
+    background:#111827;
+
+    border:1px solid #374151;
+
+    border-radius:7px;
+
+    padding:8px;
+
+    display:flex;
+
+    flex-direction:column;
+}
+
+.chartTitle{
+    color:#93c5fd;
+
+    font-size:12px;
+
+    margin-bottom:5px;
+}
+
+canvas{
+    flex:1;
+
+    width:100%;
+
+    height:100%;
+
+    min-height:0;
+
+    background:#080d18;
+}
+
+/* ==============================
+   右侧面板
+============================== */
+
+.panel{
+    width:27%;
+
+    height:100%;
+
+    background:#1f2937;
+
+    padding:17px;
+
+    overflow-y:auto;
+
+    border-left:1px solid #374151;
+}
+
+h2{
+    margin-top:0;
+
+    color:#00ff99;
+}
+
+.sectionTitle{
+    margin-top:20px;
+
+    padding-bottom:5px;
+
+    border-bottom:1px solid #374151;
+
+    color:#93c5fd;
+
+    font-weight:bold;
+
+    font-size:13px;
+}
+
+.item{
+    margin-top:13px;
+}
+
+label{
+    display:block;
+
+    margin-bottom:5px;
+
+    font-size:12px;
+}
+
+select,
+input{
+    width:100%;
+}
+
+select{
+    padding:6px;
+
+    background:#111827;
+
+    color:white;
+
+    border:1px solid #4b5563;
+
+    border-radius:5px;
+}
+
+.value{
+    float:right;
+
+    color:#facc15;
+}
+
+/* ==============================
+   按钮
+============================== */
+
+.buttons{
+    display:flex;
+
+    gap:6px;
+
+    margin-top:18px;
+}
+
+button{
+    flex:1;
+
+    border:none;
+
+    border-radius:5px;
+
+    padding:9px 3px;
+
+    color:white;
+
+    cursor:pointer;
+
+    font-size:12px;
+}
+
+.start{
+    background:#2563eb;
+}
+
+.pause{
+    background:#dc2626;
+}
+
+.reset{
+    background:#4b5563;
+}
+
+.toolButtons{
+    display:grid;
+
+    grid-template-columns:1fr 1fr;
+
+    gap:7px;
+
+    margin-top:9px;
+}
+
+.toolButtons button{
+    background:#0f766e;
+}
+
+.toolButtons button:last-child{
+    background:#7c3aed;
+}
+
+/* ==============================
+   进度条
+============================== */
+
+.progressWrap{
+    margin-top:14px;
+}
+
+.progressBar{
+    width:100%;
+
+    height:12px;
+
+    background:#111827;
+
+    border-radius:8px;
+
+    overflow:hidden;
+
+    border:1px solid #374151;
+}
+
+.progressFill{
+    width:0%;
+
+    height:100%;
+
+    background:#22c55e;
+
+    transition:width 0.08s linear;
+}
+
+.progressText{
+    margin-top:5px;
+
+    font-size:11px;
+
+    color:#cbd5e1;
+}
+
+/* ==============================
+   状态信息
+============================== */
+
+.status{
+    margin-top:15px;
+
+    background:#111827;
+
+    border-radius:7px;
+
+    padding:12px;
+
+    line-height:24px;
+
+    font-size:11px;
+
+    font-family:Consolas,monospace;
+}
+
+.trueValue{
+    color:#4ade80;
+}
+
+.measureValue{
+    color:#facc15;
+}
+
+.freqValue{
+    color:#67e8f9;
+}
+
+.statValue{
+    color:#f9a8d4;
+}
+
+.summaryBox{
+    margin-top:12px;
+
+    padding:10px;
+
+    background:#0f172a;
+
+    border:1px solid #334155;
+
+    border-radius:7px;
+
+    font-family:Consolas,monospace;
+
+    font-size:11px;
+
+    line-height:18px;
+
+    color:#cbd5e1;
+}
+
+.summaryTitle{
+    color:#a5b4fc;
+
+    font-weight:bold;
+
+    margin-bottom:5px;
+}
+
+.tip{
+    margin-top:12px;
+
+    background:#172033;
+
+    padding:10px;
+
+    border-radius:6px;
+
+    color:#9ca3af;
+
+    font-size:10px;
+
+    line-height:17px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="app">
+
+<!-- ======================================================
+     左侧
+====================================================== -->
+
+<div class="leftArea">
+
+<div id="viewer" class="viewer">
+
+    <div class="title">
+        OPA FMCW 固态激光雷达 4D 实时仿真 · 第十版
+    </div>
+
+    <div class="subtitle">
+        Three.js · Raycaster · FMCW · Doppler · Point Cloud
+    </div>
+
+    <div class="overlayStatus">
+
+        FPS:
+        <span id="fpsOverlay">0</span>
+
+        &nbsp;|&nbsp;
+
+        Avg:
+        <span id="avgFpsOverlay">0</span>
+
+        &nbsp;|&nbsp;
+
+        Hit:
+        <span id="hitOverlay">0</span>%
+
+        <br>
+
+        Frame:
+        <span id="frameOverlay">0</span>
+
+        &nbsp;|&nbsp;
+
+        Progress:
+        <span id="progressOverlay">0</span>%
+
+        &nbsp;|&nbsp;
+
+        σR:
+        <span id="sigmaOverlay">0</span> mm
+
+    </div>
+
+</div>
+
+
+<!-- 三张实时图 -->
+
+<div class="signalArea">
+
+    <div class="chartBox">
+
+        <div class="chartTitle">
+            I / Q Beat Signal
+        </div>
+
+        <canvas id="signalCanvas"></canvas>
+
+    </div>
+
+
+    <div class="chartBox">
+
+        <div class="chartTitle">
+            FFT Spectrum
+        </div>
+
+        <canvas id="fftCanvas"></canvas>
+
+    </div>
+
+
+    <div class="chartBox">
+
+        <div class="chartTitle">
+            Range Error Histogram
+        </div>
+
+        <canvas id="histCanvas"></canvas>
+
+    </div>
+
+</div>
+
+</div>
+
+
+
+<!-- ======================================================
+     右侧
+====================================================== -->
+
+<div class="panel">
+
+<h2>
+OPA 控制面板
+</h2>
+
+
+<div class="sectionTitle">
+场景
+</div>
+
+
+<div class="item">
+
+<label>
+场景选择
+</label>
+
+<select id="sceneSelect">
+
+<option value="boxes">
+堆叠纸箱
+</option>
+
+<option value="car">
+行驶车辆
+</option>
+
+<option value="city">
+城市障碍
+</option>
+
+</select>
+
+</div>
+
+
+<div class="item">
+
+<label>
+扫描模式
+</label>
+
+<select id="scanMode">
+
+<option value="raster">
+光栅 raster
+</option>
+
+<option value="spiral">
+螺旋 spiral
+</option>
+
+<option value="rosette">
+花瓣 rosette
+</option>
+
+<option value="random">
+随机 random
+</option>
+
+</select>
+
+</div>
+
+
+<div class="item">
+
+<label>
+点云着色
+</label>
+
+<select id="colorMode">
+
+<option value="range">
+按测量距离
+</option>
+
+<option value="velocity">
+按测量速度
+</option>
+
+</select>
+
+</div>
+
+
+<div class="sectionTitle">
+扫描参数
+</div>
+
+
+<div class="item">
+
+<label>
+
+方位 FOV
+
+<span class="value">
+
+<span id="azFovValue">
+60
+</span>°
+
+</span>
+
+</label>
+
+<input
+id="azFov"
+type="range"
+min="10"
+max="90"
+value="60"
+>
+
+</div>
+
+
+<div class="item">
+
+<label>
+
+俯仰 FOV
+
+<span class="value">
+
+<span id="elFovValue">
+20
+</span>°
+
+</span>
+
+</label>
+
+<input
+id="elFov"
+type="range"
+min="4"
+max="40"
+value="20"
+>
+
+</div>
+
+
+<div class="item">
+
+<label>
+
+扫描速度
+
+<span class="value">
+
+<span id="speedValue">
+10
+</span>
+
+</span>
+
+</label>
+
+<input
+id="speed"
+type="range"
+min="1"
+max="50"
+value="10"
+>
+
+</div>
+
+
+<div class="sectionTitle">
+FMCW 参数
+</div>
+
+
+<div class="item">
+
+<label>
+
+带宽 B
+
+<span class="value">
+
+<span id="bwValue">
+3.0
+</span> GHz
+
+</span>
+
+</label>
+
+<input
+id="bandwidth"
+type="range"
+min="1"
+max="6"
+step="0.1"
+value="3"
+>
+
+</div>
+
+
+<div class="item">
+
+<label>
+
+波长 λ
+
+<span class="value">
+
+<span id="lambdaValue">
+1550
+</span> nm
+
+</span>
+
+</label>
+
+<input
+id="wavelength"
+type="range"
+min="1260"
+max="1600"
+value="1550"
+>
+
+</div>
+
+
+<div class="item">
+
+<label>
+
+SNR
+
+<span class="value">
+
+<span id="snrValue">
+20
+</span> dB
+
+</span>
+
+</label>
+
+<input
+id="snr"
+type="range"
+min="3"
+max="35"
+value="20"
+>
+
+</div>
+
+
+<div class="item">
+
+<label>
+
+车辆速度
+
+<span class="value">
+
+<span id="vehicleSpeedValue">
+3.0
+</span> m/s
+
+</span>
+
+</label>
+
+<input
+id="vehicleSpeed"
+type="range"
+min="0"
+max="10"
+step="0.1"
+value="3"
+>
+
+</div>
+
+
+<!-- 开始暂停 -->
+
+<div class="buttons">
+
+<button id="startButton" class="start">
+开始
+</button>
+
+<button id="pauseButton" class="pause">
+暂停
+</button>
+
+<button id="resetButton" class="reset">
+清空
+</button>
+
+</div>
+
+
+<!-- 导出 -->
+
+<div class="toolButtons">
+
+<button id="exportCsvButton">
+导出点云 CSV
+</button>
+
+<button id="screenshotButton">
+保存整页截图
+</button>
+
+</div>
+
+
+<!-- 进度条 -->
+
+<div class="progressWrap">
+
+<div class="progressBar">
+
+<div
+id="progressFill"
+class="progressFill">
+</div>
+
+</div>
+
+<div class="progressText">
+
+扫描进度：
+
+<span id="progressText">
+0
+</span>%
+
+</div>
+
+</div>
+
+
+<!-- 状态 -->
+
+<div class="status">
+
+场景：
+
+<span id="sceneText">
+堆叠纸箱
+</span>
+
+<br>
+
+
+模式：
+
+<span id="modeText">
+光栅
+</span>
+
+<br>
+
+
+方位：
+
+<span id="azText">
+0
+</span>°
+
+<br>
+
+
+俯仰：
+
+<span id="elText">
+0
+</span>°
+
+<br>
+
+
+真实距离：
+
+<span id="trueRange" class="trueValue">
+--
+</span> m
+
+<br>
+
+
+FMCW距离：
+
+<span id="measuredRange" class="measureValue">
+--
+</span> m
+
+<br>
+
+
+真实速度：
+
+<span id="trueVelocity" class="trueValue">
+--
+</span> m/s
+
+<br>
+
+
+FMCW速度：
+
+<span id="measuredVelocity" class="measureValue">
+--
+</span> m/s
+
+<br>
+
+
+Up Beat：
+
+<span id="upBeatText" class="freqValue">
+--
+</span> kHz
+
+<br>
+
+
+Down Beat：
+
+<span id="downBeatText" class="freqValue">
+--
+</span> kHz
+
+<br>
+
+
+当前距离误差：
+
+<span id="rangeError">
+--
+</span> mm
+
+<br>
+
+
+测距 σ：
+
+<span id="sigmaText" class="statValue">
+0.00
+</span> mm
+
+<br>
+
+
+点数：
+
+<span id="pointText">
+0
+</span>
+
+<br>
+
+
+激光发射：
+
+<span id="shotText">
+0
+</span>
+
+<br>
+
+
+命中数：
+
+<span id="hitText">
+0
+</span>
+
+<br>
+
+
+命中率：
+
+<span id="hitRateText" class="statValue">
+0.0
+</span>%
+
+<br>
+
+
+当前帧：
+
+<span id="frameText">
+0
+</span>
+
+<br>
+
+
+当前 FPS：
+
+<span id="fpsText">
+0
+</span>
+
+<br>
+
+
+平均 FPS：
+
+<span id="avgFpsText" class="statValue">
+0
+</span>
+
+</div>
+
+
+<div class="summaryBox">
+
+<div class="summaryTitle">
+扫描统计总结
+</div>
+
+<div id="summaryText">
+等待扫描...
+</div>
+
+</div>
+
+
+<div class="tip">
+
+鼠标左键：旋转视角<br>
+
+滚轮：放大 / 缩小<br>
+
+σR：测距误差标准差<br>
+
+命中率：命中射线 / 总射线<br>
+
+CSV 可导出当前缓存点云。
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<script>
+
+"use strict";
+
+/* =========================================================
+   1. 常量
+========================================================= */
+
+const C = 3e8;
+
+const TC = 100e-6;
+
+const FS = 10e6;
+
+const FFT_N = 1024;
+
+const SIGNAL_N = 256;
+
+const MAX_CLOUD_POINTS = 12000;
+
+const MAX_ERROR_SAMPLES = 20000;
+
+const MAX_FPS_SAMPLES = 200;
+
+
+
+/* =========================================================
+   2. DOM辅助
+========================================================= */
+
+const $ =
+id =>
+document.getElementById(id);
+
+
+const viewer =
+$("viewer");
+
+const sceneSelect =
+$("sceneSelect");
+
+const scanMode =
+$("scanMode");
+
+const colorMode =
+$("colorMode");
+
+const azFov =
+$("azFov");
+
+const elFov =
+$("elFov");
+
+const speedSlider =
+$("speed");
+
+const bandwidth =
+$("bandwidth");
+
+const wavelength =
+$("wavelength");
+
+const snrSlider =
+$("snr");
+
+const vehicleSpeed =
+$("vehicleSpeed");
+
+
+const signalCanvas =
+$("signalCanvas");
+
+const fftCanvas =
+$("fftCanvas");
+
+const histCanvas =
+$("histCanvas");
+
+
+const sceneText =
+$("sceneText");
+
+const modeText =
+$("modeText");
+
+const azText =
+$("azText");
+
+const elText =
+$("elText");
+
+
+const trueRangeText =
+$("trueRange");
+
+const measuredRangeText =
+$("measuredRange");
+
+const trueVelocityText =
+$("trueVelocity");
+
+const measuredVelocityText =
+$("measuredVelocity");
+
+
+const upBeatText =
+$("upBeatText");
+
+const downBeatText =
+$("downBeatText");
+
+const rangeErrorText =
+$("rangeError");
+
+
+const sigmaText =
+$("sigmaText");
+
+const pointText =
+$("pointText");
+
+const shotText =
+$("shotText");
+
+const hitText =
+$("hitText");
+
+const hitRateText =
+$("hitRateText");
+
+
+const frameText =
+$("frameText");
+
+const fpsText =
+$("fpsText");
+
+const avgFpsText =
+$("avgFpsText");
+
+
+const fpsOverlay =
+$("fpsOverlay");
+
+const avgFpsOverlay =
+$("avgFpsOverlay");
+
+const hitOverlay =
+$("hitOverlay");
+
+const frameOverlay =
+$("frameOverlay");
+
+const progressOverlay =
+$("progressOverlay");
+
+const sigmaOverlay =
+$("sigmaOverlay");
+
+
+const progressFill =
+$("progressFill");
+
+const progressText =
+$("progressText");
+
+
+const summaryText =
+$("summaryText");
+
+
+
+/* =========================================================
+   3. Three.js
+========================================================= */
+
+const scene =
+new THREE.Scene();
+
+
+scene.background =
+new THREE.Color(
+0x050b15
+);
+
+
+const camera =
+new THREE.PerspectiveCamera(
+
+45,
+
+viewer.clientWidth /
+viewer.clientHeight,
+
+0.1,
+
+100
+
+);
+
+
+camera.position.set(
+9,
+7,
+11
+);
+
+
+const renderer =
+new THREE.WebGLRenderer({
+
+antialias:true,
+
+preserveDrawingBuffer:true
+
+});
+
+
+renderer.setPixelRatio(
+window.devicePixelRatio
+);
+
+
+renderer.setSize(
+
+viewer.clientWidth,
+
+viewer.clientHeight
+
+);
+
+
+viewer.appendChild(
+renderer.domElement
+);
+
+
+const controls =
+new THREE.OrbitControls(
+
+camera,
+
+renderer.domElement
+
+);
+
+
+controls.enableDamping =
+true;
+
+
+controls.target.set(
+0,
+1,
+-5
+);
+
+
+
+/* =========================================================
+   4. 坐标轴和网格
+========================================================= */
+
+scene.add(
+
+new THREE.AxesHelper(
+3
+)
+
+);
+
+
+scene.add(
+
+new THREE.GridHelper(
+
+20,
+
+20,
+
+0x555555,
+
+0x303030
+
+)
+
+);
+
+
+
+/* =========================================================
+   5. OPA芯片
+========================================================= */
+
+const chip =
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+
+1.8,
+
+0.12,
+
+0.65
+
+),
+
+new THREE.MeshBasicMaterial({
+
+color:0x1769ff
+
+})
+
+);
+
+
+chip.position.set(
+0,
+0.15,
+0
+);
+
+
+scene.add(
+chip
+);
+
+
+for(
+let i=0;
+i<20;
+i++
+){
+
+const x =
+-0.8 +
+i *
+0.084;
+
+
+const geo =
+new THREE.BufferGeometry()
+.setFromPoints([
+
+new THREE.Vector3(
+x,
+0.22,
+-0.27
+),
+
+new THREE.Vector3(
+x,
+0.22,
+0.27
+)
+
+]);
+
+
+const line =
+new THREE.Line(
+
+geo,
+
+new THREE.LineBasicMaterial({
+
+color:0xffcc33
+
+})
+
+);
+
+
+scene.add(
+line
+);
+
+}
+
+
+
+/* =========================================================
+   6. 场景
+========================================================= */
+
+let targets = [];
+
+let sceneObjects = [];
+
+let carGroup =
+null;
+
+
+
+function addBox(
+
+x,
+
+y,
+
+z,
+
+sx,
+
+sy,
+
+sz,
+
+color,
+
+velocity=0
+
+){
+
+const mesh =
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+
+sx,
+
+sy,
+
+sz
+
+),
+
+new THREE.MeshBasicMaterial({
+
+color:color,
+
+wireframe:true
+
+})
+
+);
+
+
+mesh.position.set(
+
+x,
+
+y,
+
+z
+
+);
+
+
+mesh.userData.velocity =
+velocity;
+
+
+scene.add(
+mesh
+);
+
+
+targets.push(
+mesh
+);
+
+
+sceneObjects.push(
+mesh
+);
+
+
+return mesh;
+
+}
+
+
+
+function clearSceneObjects(){
+
+for(
+const obj
+of sceneObjects
+){
+
+scene.remove(
+obj
+);
+
+
+if(
+obj.geometry
+){
+
+obj.geometry.dispose();
+
+}
+
+
+if(
+obj.children
+){
+
+for(
+const child
+of obj.children
+){
+
+if(
+child.geometry
+){
+
+child.geometry.dispose();
+
+}
+
+}
+
+}
+
+}
+
+
+targets =
+[];
+
+
+sceneObjects =
+[];
+
+
+carGroup =
+null;
+
+}
+
+
+
+function buildScene(){
+
+clearSceneObjects();
+
+
+const type =
+sceneSelect.value;
+
+
+if(
+type ===
+"boxes"
+){
+
+sceneText.innerText =
+"堆叠纸箱";
+
+
+addBox(
+
+-0.8,
+
+0.6,
+
+-4.5,
+
+1.8,
+
+1.2,
+
+1.2,
+
+0x00cc77
+
+);
+
+
+addBox(
+
+0.7,
+
+1.4,
+
+-5.1,
+
+1.5,
+
+1.6,
+
+1.2,
+
+0x22dd88
+
+);
+
+
+addBox(
+
+2.4,
+
+0.7,
+
+-6.3,
+
+1.2,
+
+1.4,
+
+1.3,
+
+0x00aa66
+
+);
+
+}
+
+
+else if(
+type ===
+"car"
+){
+
+sceneText.innerText =
+"行驶车辆";
+
+
+carGroup =
+new THREE.Group();
+
+
+const body =
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+
+3.4,
+
+0.7,
+
+1.5
+
+),
+
+new THREE.MeshBasicMaterial({
+
+color:0xff9933,
+
+wireframe:true
+
+})
+
+);
+
+
+body.position.set(
+
+0,
+
+0.65,
+
+-6
+
+);
+
+
+const roof =
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+
+1.9,
+
+0.65,
+
+1.25
+
+),
+
+new THREE.MeshBasicMaterial({
+
+color:0xffcc66,
+
+wireframe:true
+
+})
+
+);
+
+
+roof.position.set(
+
+0,
+
+1.3,
+
+-6
+
+);
+
+
+carGroup.add(
+body
+);
+
+
+carGroup.add(
+roof
+);
+
+
+carGroup.position.x =
+-4;
+
+
+scene.add(
+carGroup
+);
+
+
+const v =
+Number(
+vehicleSpeed.value
+);
+
+
+body.userData.velocity =
+v;
+
+
+roof.userData.velocity =
+v;
+
+
+targets.push(
+
+body,
+
+roof
+
+);
+
+
+sceneObjects.push(
+carGroup
+);
+
+}
+
+
+else{
+
+sceneText.innerText =
+"城市障碍";
+
+
+addBox(
+
+-3,
+
+1.5,
+
+-5,
+
+1.5,
+
+3,
+
+1.5,
+
+0x4488ff
+
+);
+
+
+addBox(
+
+0,
+
+2.2,
+
+-7,
+
+2,
+
+4.4,
+
+2,
+
+0x55aaff
+
+);
+
+
+addBox(
+
+3,
+
+1.2,
+
+-5.5,
+
+1.8,
+
+2.4,
+
+1.4,
+
+0x3377dd
+
+);
+
+
+addBox(
+
+1.5,
+
+0.7,
+
+-3.5,
+
+1,
+
+1.4,
+
+1,
+
+0x6699ff
+
+);
+
+}
+
+}
+
+
+
+/* =========================================================
+   7. 激光
+========================================================= */
+
+const beam =
+new THREE.Line(
+
+new THREE.BufferGeometry(),
+
+new THREE.LineBasicMaterial({
+
+color:0xff3333
+
+})
+
+);
+
+
+scene.add(
+beam
+);
+
+
+const origin =
+new THREE.Vector3(
+
+0,
+
+0.25,
+
+-0.1
+
+);
+
+
+const raycaster =
+new THREE.Raycaster();
+
+
+
+/* =========================================================
+   8. 点云
+========================================================= */
+
+let cloudPoints =
+[];
+
+
+let cloudRanges =
+[];
+
+
+let cloudVelocities =
+[];
+
+
+let totalPoints =
+0;
+
+
+let cloudGeometry =
+new THREE.BufferGeometry();
+
+
+const cloudMaterial =
+new THREE.PointsMaterial({
+
+size:0.08,
+
+vertexColors:true
+
+});
+
+
+const cloud =
+new THREE.Points(
+
+cloudGeometry,
+
+cloudMaterial
+
+);
+
+
+scene.add(
+cloud
+);
+
+
+
+/* =========================================================
+   9. 统计
+========================================================= */
+
+let rangeErrors =
+[];
+
+
+let shotCount =
+0;
+
+
+let hitCount =
+0;
+
+
+let fpsSamples =
+[];
+
+
+let fpsSum =
+0;
+
+
+let scanCycleCount =
+0;
+
+
+
+/* =========================================================
+   10. UI事件
+========================================================= */
+
+$("azFov").oninput =
+()=>{
+
+$("azFovValue").innerText =
+azFov.value;
+
+};
+
+
+$("elFov").oninput =
+()=>{
+
+$("elFovValue").innerText =
+elFov.value;
+
+};
+
+
+$("speed").oninput =
+()=>{
+
+$("speedValue").innerText =
+speedSlider.value;
+
+};
+
+
+$("bandwidth").oninput =
+()=>{
+
+$("bwValue").innerText =
+Number(
+bandwidth.value
+).toFixed(
+1
+);
+
+};
+
+
+$("wavelength").oninput =
+()=>{
+
+$("lambdaValue").innerText =
+wavelength.value;
+
+};
+
+
+$("snr").oninput =
+()=>{
+
+$("snrValue").innerText =
+snrSlider.value;
+
+};
+
+
+$("vehicleSpeed").oninput =
+()=>{
+
+$("vehicleSpeedValue").innerText =
+Number(
+vehicleSpeed.value
+).toFixed(
+1
+);
+
+};
+
+
+sceneSelect.onchange =
+()=>{
+
+resetScan();
+
+buildScene();
+
+};
+
+
+scanMode.onchange =
+()=>{
+
+resetAngles();
+
+};
+
+
+colorMode.onchange =
+()=>{
+
+updateCloud();
+
+};
+
+
+$("startButton").onclick =
+startScan;
+
+
+$("pauseButton").onclick =
+pauseScan;
+
+
+$("resetButton").onclick =
+resetScan;
+
+
+$("exportCsvButton").onclick =
+exportPointCloudCSV;
+
+
+$("screenshotButton").onclick =
+saveScreenshot;
+
+
+
+/* =========================================================
+   11. 高斯随机数
+========================================================= */
+
+function gaussianRandom(){
+
+let u =
+0;
+
+
+let v =
+0;
+
+
+while(
+u === 0
+){
+
+u =
+Math.random();
+
+}
+
+
+while(
+v === 0
+){
+
+v =
+Math.random();
+
+}
+
+
+return (
+
+Math.sqrt(
+
+-2 *
+Math.log(
+u
+)
+
+)
+
+*
+
+Math.cos(
+
+2 *
+Math.PI *
+v
+
+)
+
+);
+
+}
+
+
+
+/* =========================================================
+   12. FMCW
+========================================================= */
+
+function fmcwPoint(
+
+trueRange,
+
+trueVelocity
+
+){
+
+const B =
+Number(
+bandwidth.value
+) *
+1e9;
+
+
+const lambda =
+Number(
+wavelength.value
+) *
+1e-9;
+
+
+const snrDB =
+Number(
+snrSlider.value
+);
+
+
+const slope =
+B /
+TC;
+
+
+const tau =
+2 *
+trueRange /
+C;
+
+
+const doppler =
+2 *
+trueVelocity /
+lambda;
+
+
+const fUp =
+slope *
+tau -
+doppler;
+
+
+const fDown =
+slope *
+tau +
+doppler;
+
+
+const fftBin =
+FS /
+FFT_N;
+
+
+const snrLinear =
+Math.pow(
+
+10,
+
+snrDB /
+10
+
+);
+
+
+const sigmaFreq =
+fftBin *
+2 /
+Math.sqrt(
+snrLinear
+);
+
+
+const measuredUp =
+fUp +
+gaussianRandom() *
+sigmaFreq;
+
+
+const measuredDown =
+fDown +
+gaussianRandom() *
+sigmaFreq;
+
+
+const measuredRange =
+
+C *
+TC /
+(
+2 *
+B
+)
+
+*
+
+(
+measuredUp +
+measuredDown
+)
+
+/
+2;
+
+
+const measuredVelocity =
+
+lambda /
+4
+
+*
+
+(
+measuredDown -
+measuredUp
+);
+
+
+return{
+
+range:
+measuredRange,
+
+velocity:
+measuredVelocity,
+
+fUp:
+measuredUp,
+
+fDown:
+measuredDown
+
+};
+
+}
+
+
+
+/* =========================================================
+   13. 扫描
+========================================================= */
+
+let running =
+false;
+
+
+let az =
+0;
+
+
+let el =
+0;
+
+
+let rasterDirection =
+1;
+
+
+let spiralT =
+0;
+
+
+let rosetteT =
+0;
+
+
+let genericProgress =
+0;
+
+
+let cycleCompleted =
+false;
+
+
+
+function resetAngles(){
+
+az =
+0;
+
+
+el =
+0;
+
+
+rasterDirection =
+1;
+
+
+spiralT =
+0;
+
+
+rosetteT =
+0;
+
+
+genericProgress =
+0;
+
+
+cycleCompleted =
+false;
+
+
+updateProgress();
+
+}
+
+
+
+function rasterScan(){
+
+const azHalf =
+Number(
+azFov.value
+) /
+2;
+
+
+const elHalf =
+Number(
+elFov.value
+) /
+2;
+
+
+const azStep =
+1.5;
+
+
+const elStep =
+1.2;
+
+
+az +=
+azStep *
+rasterDirection;
+
+
+if(
+az >
+azHalf
+){
+
+az =
+azHalf;
+
+
+rasterDirection =
+-1;
+
+
+el +=
+elStep;
+
+}
+
+
+if(
+az <
+-azHalf
+){
+
+az =
+-azHalf;
+
+
+rasterDirection =
+1;
+
+
+el +=
+elStep;
+
+}
+
+
+if(
+el >
+elHalf
+){
+
+el =
+-elHalf;
+
+
+cycleCompleted =
+true;
+
+}
+
+}
+
+
+
+function spiralScan(){
+
+const azHalf =
+Number(
+azFov.value
+) /
+2;
+
+
+const elHalf =
+Number(
+elFov.value
+) /
+2;
+
+
+const period =
+Math.PI *
+12;
+
+
+const previousCycle =
+Math.floor(
+
+spiralT /
+period
+
+);
+
+
+spiralT +=
+0.05;
+
+
+const currentCycle =
+Math.floor(
+
+spiralT /
+period
+
+);
+
+
+if(
+currentCycle >
+previousCycle
+){
+
+cycleCompleted =
+true;
+
+}
+
+
+const phase =
+spiralT %
+period;
+
+
+const rho =
+Math.sqrt(
+
+phase /
+period
+
+);
+
+
+az =
+rho *
+Math.cos(
+phase
+) *
+azHalf;
+
+
+el =
+rho *
+Math.sin(
+phase
+) *
+elHalf;
+
+
+genericProgress =
+phase /
+period *
+100;
+
+}
+
+
+
+function rosetteScan(){
+
+const azHalf =
+Number(
+azFov.value
+) /
+2;
+
+
+const elHalf =
+Number(
+elFov.value
+) /
+2;
+
+
+const period =
+Math.PI *
+4;
+
+
+const previousCycle =
+Math.floor(
+
+rosetteT /
+period
+
+);
+
+
+rosetteT +=
+0.035;
+
+
+const currentCycle =
+Math.floor(
+
+rosetteT /
+period
+
+);
+
+
+if(
+currentCycle >
+previousCycle
+){
+
+cycleCompleted =
+true;
+
+}
+
+
+az =
+0.9 *
+azHalf *
+Math.sin(
+
+3 *
+rosetteT
+
+);
+
+
+el =
+0.9 *
+elHalf *
+Math.sin(
+
+2 *
+rosetteT +
+Math.PI /
+3
+
+);
+
+
+genericProgress =
+(
+rosetteT %
+period
+)
+/
+period *
+100;
+
+}
+
+
+
+function randomScan(){
+
+const azHalf =
+Number(
+azFov.value
+) /
+2;
+
+
+const elHalf =
+Number(
+elFov.value
+) /
+2;
+
+
+az =
+(
+Math.random() *
+2 -
+1
+)
+*
+azHalf;
+
+
+el =
+(
+Math.random() *
+2 -
+1
+)
+*
+elHalf;
+
+
+genericProgress +=
+0.8;
+
+
+if(
+genericProgress >=
+100
+){
+
+genericProgress =
+0;
+
+
+cycleCompleted =
+true;
+
+}
+
+}
+
+
+
+function nextScan(){
+
+if(
+scanMode.value ===
+"raster"
+){
+
+rasterScan();
+
+
+modeText.innerText =
+"光栅";
+
+}
+
+
+else if(
+scanMode.value ===
+"spiral"
+){
+
+spiralScan();
+
+
+modeText.innerText =
+"螺旋";
+
+}
+
+
+else if(
+scanMode.value ===
+"rosette"
+){
+
+rosetteScan();
+
+
+modeText.innerText =
+"花瓣";
+
+}
+
+
+else{
+
+randomScan();
+
+
+modeText.innerText =
+"随机";
+
+}
+
+
+updateProgress();
+
+
+if(
+cycleCompleted
+){
+
+cycleCompleted =
+false;
+
+
+scanCycleCount++;
+
+
+updateSummary(
+true
+);
+
+}
+
+}
+
+
+
+/* =========================================================
+   14. 进度
+========================================================= */
+
+function getScanProgress(){
+
+if(
+scanMode.value ===
+"raster"
+){
+
+const elHalf =
+Number(
+elFov.value
+) /
+2;
+
+
+if(
+elHalf <=
+0
+){
+
+return 0;
+
+}
+
+
+let progress =
+(
+el +
+elHalf
+)
+/
+(
+2 *
+elHalf
+)
+*
+100;
+
+
+progress =
+Math.max(
+
+0,
+
+Math.min(
+
+100,
+
+progress
+
+)
+
+);
+
+
+return progress;
+
+}
+
+
+return genericProgress;
+
+}
+
+
+
+function updateProgress(){
+
+const p =
+getScanProgress();
+
+
+const text =
+p.toFixed(
+0
+);
+
+
+progressFill.style.width =
+text +
+"%";
+
+
+progressText.innerText =
+text;
+
+
+progressOverlay.innerText =
+text;
+
+}
+
+
+
+/* =========================================================
+   15. 光束方向
+========================================================= */
+
+function directionFromAngles(
+
+azDegree,
+
+elDegree
+
+){
+
+const a =
+THREE.MathUtils.degToRad(
+azDegree
+);
+
+
+const e =
+THREE.MathUtils.degToRad(
+elDegree
+);
+
+
+return new THREE.Vector3(
+
+Math.sin(
+a
+) *
+Math.cos(
+e
+),
+
+Math.sin(
+e
+),
+
+-Math.cos(
+a
+) *
+Math.cos(
+e
+)
+
+).normalize();
+
+}
+
+
+
+/* =========================================================
+   16. 测距sigma
+========================================================= */
+
+function calculateRangeSigma(){
+
+const n =
+rangeErrors.length;
+
+
+if(
+n <
+2
+){
+
+return 0;
+
+}
+
+
+let mean =
+0;
+
+
+for(
+const error
+of rangeErrors
+){
+
+mean +=
+error;
+
+}
+
+
+mean /=
+n;
+
+
+let sum =
+0;
+
+
+for(
+const error
+of rangeErrors
+){
+
+const d =
+error -
+mean;
+
+
+sum +=
+d *
+d;
+
+}
+
+
+return (
+
+Math.sqrt(
+
+sum /
+(
+n -
+1
+)
+
+)
+
+*
+1000
+
+);
+
+}
+
+
+
+/* =========================================================
+   17. 命中率
+========================================================= */
+
+function calculateHitRate(){
+
+if(
+shotCount ===
+0
+){
+
+return 0;
+
+}
+
+
+return (
+
+hitCount /
+shotCount *
+100
+
+);
+
+}
+
+
+
+/* =========================================================
+   18. 统计更新
+========================================================= */
+
+function updateStatistics(){
+
+const sigma =
+calculateRangeSigma();
+
+
+const hitRate =
+calculateHitRate();
+
+
+sigmaText.innerText =
+sigma.toFixed(
+2
+);
+
+
+sigmaOverlay.innerText =
+sigma.toFixed(
+2
+);
+
+
+shotText.innerText =
+shotCount;
+
+
+hitText.innerText =
+hitCount;
+
+
+hitRateText.innerText =
+hitRate.toFixed(
+1
+);
+
+
+hitOverlay.innerText =
+hitRate.toFixed(
+1
+);
+
+}
+
+
+
+/* =========================================================
+   19. 射线发射
+========================================================= */
+
+let latestMeasurement =
+null;
+
+
+
+function shootRay(){
+
+shotCount++;
+
+
+const direction =
+directionFromAngles(
+
+az,
+
+el
+
+);
+
+
+scene.updateMatrixWorld(
+true
+);
+
+
+raycaster.set(
+
+origin,
+
+direction
+
+);
+
+
+raycaster.near =
+0;
+
+
+raycaster.far =
+16;
+
+
+const hits =
+raycaster.intersectObjects(
+
+targets,
+
+false
+
+);
+
+
+let endPoint;
+
+
+if(
+hits.length >
+0
+){
+
+hitCount++;
+
+
+const hit =
+hits[0];
+
+
+endPoint =
+hit.point.clone();
+
+
+const trueRange =
+origin.distanceTo(
+hit.point
+);
+
+
+const objectSpeed =
+Number(
+
+hit.object.userData.velocity ||
+0
+
+);
+
+
+const velocityVector =
+new THREE.Vector3(
+
+objectSpeed,
+
+0,
+
+0
+
+);
+
+
+const trueRadialVelocity =
+velocityVector.dot(
+
+direction
+.clone()
+.multiplyScalar(
+-1
+)
+
+);
+
+
+const measurement =
+fmcwPoint(
+
+trueRange,
+
+trueRadialVelocity
+
+);
+
+
+const error =
+measurement.range -
+trueRange;
+
+
+rangeErrors.push(
+error
+);
+
+
+if(
+rangeErrors.length >
+MAX_ERROR_SAMPLES
+){
+
+rangeErrors.shift();
+
+}
+
+
+latestMeasurement = {
+
+trueRange:
+trueRange,
+
+trueVelocity:
+trueRadialVelocity,
+
+measuredRange:
+measurement.range,
+
+measuredVelocity:
+measurement.velocity,
+
+fUp:
+measurement.fUp,
+
+fDown:
+measurement.fDown
+
+};
+
+
+const measuredPoint =
+origin
+.clone()
+.add(
+
+direction
+.clone()
+.multiplyScalar(
+
+measurement.range
+
+)
+
+);
+
+
+addCloudPoint(
+
+measuredPoint,
+
+measurement.range,
+
+measurement.velocity
+
+);
+
+
+trueRangeText.innerText =
+trueRange.toFixed(
+3
+);
+
+
+measuredRangeText.innerText =
+measurement.range.toFixed(
+3
+);
+
+
+trueVelocityText.innerText =
+trueRadialVelocity.toFixed(
+2
+);
+
+
+measuredVelocityText.innerText =
+measurement.velocity.toFixed(
+2
+);
+
+
+upBeatText.innerText =
+(
+measurement.fUp /
+1000
+)
+.toFixed(
+1
+);
+
+
+downBeatText.innerText =
+(
+measurement.fDown /
+1000
+)
+.toFixed(
+1
+);
+
+
+rangeErrorText.innerText =
+(
+error *
+1000
+)
+.toFixed(
+1
+);
+
+}
+
+
+else{
+
+endPoint =
+origin
+.clone()
+.add(
+
+direction
+.clone()
+.multiplyScalar(
+16
+)
+
+);
+
+
+trueRangeText.innerText =
+"--";
+
+
+measuredRangeText.innerText =
+"--";
+
+
+trueVelocityText.innerText =
+"--";
+
+
+measuredVelocityText.innerText =
+"--";
+
+
+upBeatText.innerText =
+"--";
+
+
+downBeatText.innerText =
+"--";
+
+
+rangeErrorText.innerText =
+"--";
+
+}
+
+
+beam.geometry.dispose();
+
+
+beam.geometry =
+new THREE.BufferGeometry()
+.setFromPoints([
+
+origin,
+
+endPoint
+
+]);
+
+
+updateStatistics();
+
+}
+
+
+
+/* =========================================================
+   20. 点云
+========================================================= */
+
+function addCloudPoint(
+
+point,
+
+range,
+
+velocity
+
+){
+
+cloudPoints.push(
+point.clone()
+);
+
+
+cloudRanges.push(
+range
+);
+
+
+cloudVelocities.push(
+velocity
+);
+
+
+totalPoints++;
+
+
+if(
+cloudPoints.length >
+MAX_CLOUD_POINTS
+){
+
+cloudPoints.shift();
+
+
+cloudRanges.shift();
+
+
+cloudVelocities.shift();
+
+}
+
+
+updateCloud();
+
+
+pointText.innerText =
+totalPoints;
+
+}
+
+
+
+/* =========================================================
+   21. 点云颜色
+========================================================= */
+
+function rangeColor(
+range
+){
+
+let x =
+(
+range -
+2
+)
+/
+12;
+
+
+x =
+Math.max(
+
+0,
+
+Math.min(
+
+1,
+
+x
+
+)
+
+);
+
+
+const color =
+new THREE.Color();
+
+
+if(
+x <
+0.5
+){
+
+const t =
+x /
+0.5;
+
+
+color.setRGB(
+
+0.1,
+
+0.4 +
+0.6 *
+t,
+
+1 -
+0.7 *
+t
+
+);
+
+}
+
+
+else{
+
+const t =
+(
+x -
+0.5
+)
+/
+0.5;
+
+
+color.setRGB(
+
+0.3 +
+0.7 *
+t,
+
+1 -
+0.75 *
+t,
+
+0.15
+
+);
+
+}
+
+
+return color;
+
+}
+
+
+
+function velocityColor(
+velocity
+){
+
+const vmax =
+6;
+
+
+let x =
+velocity /
+vmax;
+
+
+x =
+Math.max(
+
+-1,
+
+Math.min(
+
+1,
+
+x
+
+)
+
+);
+
+
+const color =
+new THREE.Color();
+
+
+if(
+x >=
+0
+){
+
+color.setRGB(
+
+1,
+
+0.8 *
+(
+1 -
+x
+),
+
+0.8 *
+(
+1 -
+x
+)
+
+);
+
+}
+
+
+else{
+
+const t =
+-x;
+
+
+color.setRGB(
+
+0.8 *
+(
+1 -
+t
+),
+
+0.8 *
+(
+1 -
+t
+),
+
+1
+
+);
+
+}
+
+
+return color;
+
+}
+
+
+
+function updateCloud(){
+
+const positions =
+[];
+
+
+const colors =
+[];
+
+
+for(
+let i=0;
+i<cloudPoints.length;
+i++
+){
+
+const point =
+cloudPoints[i];
+
+
+positions.push(
+
+point.x,
+
+point.y,
+
+point.z
+
+);
+
+
+let color;
+
+
+if(
+colorMode.value ===
+"velocity"
+){
+
+color =
+velocityColor(
+
+cloudVelocities[
+i
+]
+
+);
+
+}
+
+
+else{
+
+color =
+rangeColor(
+
+cloudRanges[
+i
+]
+
+);
+
+}
+
+
+colors.push(
+
+color.r,
+
+color.g,
+
+color.b
+
+);
+
+}
+
+
+cloudGeometry.dispose();
+
+
+cloudGeometry =
+new THREE.BufferGeometry();
+
+
+cloudGeometry.setAttribute(
+
+"position",
+
+new THREE.Float32BufferAttribute(
+
+positions,
+
+3
+
+)
+
+);
+
+
+cloudGeometry.setAttribute(
+
+"color",
+
+new THREE.Float32BufferAttribute(
+
+colors,
+
+3
+
+)
+
+);
+
+
+cloud.geometry =
+cloudGeometry;
+
+}
+
+
+
+/* =========================================================
+   22. Canvas
+========================================================= */
+
+function resizeCanvas(
+canvas
+){
+
+const rect =
+canvas.getBoundingClientRect();
+
+
+const dpr =
+window.devicePixelRatio ||
+1;
+
+
+canvas.width =
+Math.max(
+
+1,
+
+Math.floor(
+
+rect.width *
+dpr
+
+)
+
+);
+
+
+canvas.height =
+Math.max(
+
+1,
+
+Math.floor(
+
+rect.height *
+dpr
+
+)
+
+);
+
+}
+
+
+
+/* =========================================================
+   23. I/Q波形
+========================================================= */
+
+function drawSignal(){
+
+resizeCanvas(
+signalCanvas
+);
+
+
+const ctx =
+signalCanvas.getContext(
+"2d"
+);
+
+
+const W =
+signalCanvas.width;
+
+
+const H =
+signalCanvas.height;
+
+
+ctx.clearRect(
+0,
+0,
+W,
+H
+);
+
+
+ctx.fillStyle =
+"#080d18";
+
+
+ctx.fillRect(
+0,
+0,
+W,
+H
+);
+
+
+drawGrid(
+ctx,
+W,
+H
+);
+
+
+if(
+!latestMeasurement
+){
+
+ctx.fillStyle =
+"#64748b";
+
+
+ctx.font =
+`${12 * window.devicePixelRatio}px Arial`;
+
+
+ctx.fillText(
+
+"等待激光命中目标...",
+
+20,
+
+30
+
+);
+
+
+return;
+
+}
+
+
+const frequency =
+latestMeasurement.fUp;
+
+
+const snr =
+Number(
+snrSlider.value
+);
+
+
+const noise =
+0.8 /
+Math.sqrt(
+
+Math.pow(
+
+10,
+
+snr /
+10
+
+)
+
+);
+
+
+/* I */
+
+ctx.strokeStyle =
+"#22d3ee";
+
+
+ctx.lineWidth =
+1.5 *
+window.devicePixelRatio;
+
+
+ctx.beginPath();
+
+
+for(
+let i=0;
+i<SIGNAL_N;
+i++
+){
+
+const t =
+i /
+FS;
+
+
+const value =
+
+Math.cos(
+
+2 *
+Math.PI *
+frequency *
+t
+
+)
+
++
+
+gaussianRandom() *
+noise;
+
+
+const x =
+i /
+(
+SIGNAL_N -
+1
+)
+*
+W;
+
+
+const y =
+H /
+2 -
+value *
+H *
+0.2;
+
+
+if(
+i ===
+0
+){
+
+ctx.moveTo(
+x,
+y
+);
+
+}
+
+
+else{
+
+ctx.lineTo(
+x,
+y
+);
+
+}
+
+}
+
+
+ctx.stroke();
+
+
+/* Q */
+
+ctx.strokeStyle =
+"#facc15";
+
+
+ctx.beginPath();
+
+
+for(
+let i=0;
+i<SIGNAL_N;
+i++
+){
+
+const t =
+i /
+FS;
+
+
+const value =
+
+Math.sin(
+
+2 *
+Math.PI *
+frequency *
+t
+
+)
+
++
+
+gaussianRandom() *
+noise;
+
+
+const x =
+i /
+(
+SIGNAL_N -
+1
+)
+*
+W;
+
+
+const y =
+H /
+2 -
+value *
+H *
+0.2;
+
+
+if(
+i ===
+0
+){
+
+ctx.moveTo(
+x,
+y
+);
+
+}
+
+
+else{
+
+ctx.lineTo(
+x,
+y
+);
+
+}
+
+}
+
+
+ctx.stroke();
+
+
+ctx.fillStyle =
+"#22d3ee";
+
+
+ctx.fillText(
+"I",
+10,
+18
+);
+
+
+ctx.fillStyle =
+"#facc15";
+
+
+ctx.fillText(
+"Q",
+28,
+18
+);
+
+}
+
+
+
+/* =========================================================
+   24. 网格
+========================================================= */
+
+function drawGrid(
+
+ctx,
+
+W,
+
+H
+
+){
+
+ctx.strokeStyle =
+"#243244";
+
+
+ctx.lineWidth =
+1;
+
+
+for(
+let i=0;
+i<=10;
+i++
+){
+
+const x =
+i /
+10 *
+W;
+
+
+ctx.beginPath();
+
+
+ctx.moveTo(
+x,
+0
+);
+
+
+ctx.lineTo(
+x,
+H
+);
+
+
+ctx.stroke();
+
+}
+
+
+for(
+let i=0;
+i<=4;
+i++
+){
+
+const y =
+i /
+4 *
+H;
+
+
+ctx.beginPath();
+
+
+ctx.moveTo(
+0,
+y
+);
+
+
+ctx.lineTo(
+W,
+y
+);
+
+
+ctx.stroke();
+
+}
+
+}
+
+
+
+/* =========================================================
+   25. FFT
+========================================================= */
+
+function drawFFT(){
+
+resizeCanvas(
+fftCanvas
+);
+
+
+const ctx =
+fftCanvas.getContext(
+"2d"
+);
+
+
+const W =
+fftCanvas.width;
+
+
+const H =
+fftCanvas.height;
+
+
+ctx.clearRect(
+0,
+0,
+W,
+H
+);
+
+
+ctx.fillStyle =
+"#080d18";
+
+
+ctx.fillRect(
+0,
+0,
+W,
+H
+);
+
+
+drawGrid(
+ctx,
+W,
+H
+);
+
+
+if(
+!latestMeasurement
+){
+
+ctx.fillStyle =
+"#64748b";
+
+
+ctx.font =
+`${12 * window.devicePixelRatio}px Arial`;
+
+
+ctx.fillText(
+
+"等待 FFT 数据...",
+
+20,
+
+30
+
+);
+
+
+return;
+
+}
+
+
+const maxFrequency =
+Math.max(
+
+2e6,
+
+Math.abs(
+
+latestMeasurement.fUp
+
+)
+*
+1.4,
+
+Math.abs(
+
+latestMeasurement.fDown
+
+)
+*
+1.4
+
+);
+
+
+
+function xForFreq(
+frequency
+){
+
+return (
+
+Math.abs(
+frequency
+)
+/
+maxFrequency
+*
+(
+W *
+0.9
+)
+
++
+
+W *
+0.05
+
+);
+
+}
+
+
+
+function drawPeak(
+
+frequency,
+
+color
+
+){
+
+const center =
+xForFreq(
+frequency
+);
+
+
+const width =
+W *
+0.025;
+
+
+ctx.strokeStyle =
+color;
+
+
+ctx.lineWidth =
+2 *
+window.devicePixelRatio;
+
+
+ctx.beginPath();
+
+
+for(
+let i=-40;
+i<=40;
+i++
+){
+
+const x =
+center +
+i *
+width /
+10;
+
+
+const gaussian =
+Math.exp(
+
+-0.5 *
+Math.pow(
+
+i /
+7,
+
+2
+
+)
+
+);
+
+
+const noise =
+Math.random() *
+0.05;
+
+
+const y =
+H -
+(
+gaussian +
+noise
+)
+*
+H *
+0.78 -
+H *
+0.05;
+
+
+if(
+i ===
+-40
+){
+
+ctx.moveTo(
+x,
+y
+);
+
+}
+
+
+else{
+
+ctx.lineTo(
+x,
+y
+);
+
+}
+
+}
+
+
+ctx.stroke();
+
+}
+
+
+drawPeak(
+
+latestMeasurement.fUp,
+
+"#22d3ee"
+
+);
+
+
+drawPeak(
+
+latestMeasurement.fDown,
+
+"#f97316"
+
+);
+
+
+ctx.fillStyle =
+"#22d3ee";
+
+
+ctx.fillText(
+
+"Up",
+
+10,
+
+18
+
+);
+
+
+ctx.fillStyle =
+"#f97316";
+
+
+ctx.fillText(
+
+"Down",
+
+42,
+
+18
+
+);
+
+
+ctx.fillStyle =
+"#94a3b8";
+
+
+ctx.fillText(
+
+(
+maxFrequency /
+1e6
+).toFixed(
+1
+)
++
+" MHz",
+
+W *
+0.76,
+
+H -
+8
+
+);
+
+}
+
+
+
+/* =========================================================
+   26. 测距误差直方图
+========================================================= */
+
+function drawHistogram(){
+
+resizeCanvas(
+histCanvas
+);
+
+
+const ctx =
+histCanvas.getContext(
+"2d"
+);
+
+
+const W =
+histCanvas.width;
+
+
+const H =
+histCanvas.height;
+
+
+ctx.clearRect(
+0,
+0,
+W,
+H
+);
+
+
+ctx.fillStyle =
+"#080d18";
+
+
+ctx.fillRect(
+0,
+0,
+W,
+H
+);
+
+
+drawGrid(
+ctx,
+W,
+H
+);
+
+
+if(
+rangeErrors.length <
+2
+){
+
+ctx.fillStyle =
+"#64748b";
+
+
+ctx.font =
+`${12 * window.devicePixelRatio}px Arial`;
+
+
+ctx.fillText(
+
+"等待测距误差样本...",
+
+20,
+
+30
+
+);
+
+
+return;
+
+}
+
+
+const values =
+rangeErrors
+.slice(
+-5000
+)
+.map(
+
+value =>
+value *
+1000
+
+);
+
+
+let maxAbs =
+Math.max(
+
+1,
+
+...values.map(
+
+value =>
+Math.abs(
+value
+)
+
+)
+
+);
+
+
+maxAbs *=
+1.15;
+
+
+const bins =
+30;
+
+
+const counts =
+new Array(
+bins
+)
+.fill(
+0
+);
+
+
+for(
+const value
+of values
+){
+
+let index =
+Math.floor(
+
+(
+value +
+maxAbs
+)
+/
+(
+2 *
+maxAbs
+)
+
+*
+bins
+
+);
+
+
+index =
+Math.max(
+
+0,
+
+Math.min(
+
+bins -
+1,
+
+index
+
+)
+
+);
+
+
+counts[
+index
+]++;
+
+}
+
+
+const maxCount =
+Math.max(
+
+1,
+
+...counts
+
+);
+
+
+const left =
+W *
+0.06;
+
+
+const right =
+W *
+0.98;
+
+
+const top =
+H *
+0.08;
+
+
+const bottom =
+H *
+0.84;
+
+
+const width =
+right -
+left;
+
+
+const height =
+bottom -
+top;
+
+
+const barWidth =
+width /
+bins;
+
+
+ctx.fillStyle =
+"#a78bfa";
+
+
+for(
+let i=0;
+i<bins;
+i++
+){
+
+const barHeight =
+counts[
+i
+]
+/
+maxCount
+*
+height;
+
+
+ctx.fillRect(
+
+left +
+i *
+barWidth +
+1,
+
+bottom -
+barHeight,
+
+Math.max(
+
+1,
+
+barWidth -
+2
+
+),
+
+barHeight
+
+);
+
+}
+
+
+/* 0误差中心线 */
+
+ctx.strokeStyle =
+"#ffffff";
+
+
+ctx.beginPath();
+
+
+ctx.moveTo(
+
+left +
+width /
+2,
+
+top
+
+);
+
+
+ctx.lineTo(
+
+left +
+width /
+2,
+
+bottom
+
+);
+
+
+ctx.stroke();
+
+
+ctx.fillStyle =
+"#94a3b8";
+
+
+ctx.font =
+`${9 * window.devicePixelRatio}px Arial`;
+
+
+ctx.fillText(
+
+`-${maxAbs.toFixed(0)} mm`,
+
+left,
+
+H -
+8
+
+);
+
+
+ctx.fillText(
+
+"0",
+
+left +
+width /
+2,
+
+H -
+8
+
+);
+
+
+ctx.fillText(
+
+`+${maxAbs.toFixed(0)} mm`,
+
+right -
+55 *
+window.devicePixelRatio,
+
+H -
+8
+
+);
+
+}
+
+
+
+/* =========================================================
+   27. 车辆运动
+========================================================= */
+
+function updateCar(
+dt
+){
+
+if(
+!carGroup
+){
+
+return;
+
+}
+
+
+const velocity =
+Number(
+vehicleSpeed.value
+);
+
+
+carGroup.position.x +=
+
+velocity *
+dt *
+0.35;
+
+
+if(
+carGroup.position.x >
+5
+){
+
+carGroup.position.x =
+-5;
+
+}
+
+
+for(
+const object
+of carGroup.children
+){
+
+object.userData.velocity =
+velocity;
+
+}
+
+}
+
+
+
+/* =========================================================
+   28. FPS
+========================================================= */
+
+let frameNumber =
+0;
+
+
+let fps =
+0;
+
+
+let fpsFrameCount =
+0;
+
+
+let fpsTimer =
+performance.now();
+
+
+
+function getAverageFPS(){
+
+if(
+fpsSamples.length ===
+0
+){
+
+return 0;
+
+}
+
+
+return (
+
+fpsSum /
+fpsSamples.length
+
+);
+
+}
+
+
+
+function updateFPS(
+now
+){
+
+fpsFrameCount++;
+
+
+const elapsed =
+now -
+fpsTimer;
+
+
+if(
+elapsed >=
+500
+){
+
+fps =
+fpsFrameCount *
+1000 /
+elapsed;
+
+
+fpsFrameCount =
+0;
+
+
+fpsTimer =
+now;
+
+
+fpsSamples.push(
+fps
+);
+
+
+fpsSum +=
+fps;
+
+
+if(
+fpsSamples.length >
+MAX_FPS_SAMPLES
+){
+
+fpsSum -=
+fpsSamples.shift();
+
+}
+
+
+const average =
+getAverageFPS();
+
+
+fpsText.innerText =
+fps.toFixed(
+1
+);
+
+
+fpsOverlay.innerText =
+fps.toFixed(
+1
+);
+
+
+avgFpsText.innerText =
+average.toFixed(
+1
+);
+
+
+avgFpsOverlay.innerText =
+average.toFixed(
+1
+);
+
+}
+
+}
+
+
+
+/* =========================================================
+   29. 扫描总结
+========================================================= */
+
+function updateSummary(
+completed=false
+){
+
+const sigma =
+calculateRangeSigma();
+
+
+const hitRate =
+calculateHitRate();
+
+
+const averageFPS =
+getAverageFPS();
+
+
+let title;
+
+
+if(
+completed
+){
+
+title =
+`第 ${scanCycleCount} 个扫描周期完成`;
+
+}
+
+
+else{
+
+title =
+"当前统计";
+
+}
+
+
+summaryText.innerHTML =
+
+`${title}<br>` +
+
+`点云点数：${totalPoints}<br>` +
+
+`发射 / 命中：${shotCount} / ${hitCount}<br>` +
+
+`命中率：${hitRate.toFixed(1)}%<br>` +
+
+`测距 σ：${sigma.toFixed(2)} mm<br>` +
+
+`平均 FPS：${averageFPS.toFixed(1)}`;
+
+}
+
+
+
+/* =========================================================
+   30. CSV导出
+========================================================= */
+
+function exportPointCloudCSV(){
+
+if(
+cloudPoints.length ===
+0
+){
+
+alert(
+"当前没有点云，请先开始扫描。"
+);
+
+
+return;
+
+}
+
+
+const lines =
+[
+
+"x_m,y_m,z_m,range_m,radial_velocity_mps"
+
+];
+
+
+for(
+let i=0;
+i<cloudPoints.length;
+i++
+){
+
+const point =
+cloudPoints[
+i
+];
+
+
+lines.push(
+
+[
+
+point.x.toFixed(
+6
+),
+
+point.y.toFixed(
+6
+),
+
+point.z.toFixed(
+6
+),
+
+Number(
+cloudRanges[
+i
+]
+).toFixed(
+6
+),
+
+Number(
+cloudVelocities[
+i
+]
+).toFixed(
+6
+)
+
+]
+.join(
+","
+)
+
+);
+
+}
+
+
+const blob =
+new Blob(
+
+[
+lines.join(
+"\n"
+)
+],
+
+{
+
+type:
+"text/csv;charset=utf-8"
+
+}
+
+);
+
+
+const url =
+URL.createObjectURL(
+blob
+);
+
+
+const a =
+document.createElement(
+"a"
+);
+
+
+a.href =
+url;
+
+
+a.download =
+`OPA_PointCloud_${Date.now()}.csv`;
+
+
+document.body.appendChild(
+a
+);
+
+
+a.click();
+
+
+document.body.removeChild(
+a
+);
+
+
+URL.revokeObjectURL(
+url
+);
+
+}
+
+
+
+/* =========================================================
+   31. 截图
+========================================================= */
+
+async function saveScreenshot(){
+
+try{
+
+const canvas =
+await html2canvas(
+
+document.body,
+
+{
+
+backgroundColor:
+"#050b15",
+
+scale:
+1,
+
+useCORS:
+true
+
+}
+
+);
+
+
+const a =
+document.createElement(
+"a"
+);
+
+
+a.href =
+canvas.toDataURL(
+"image/png"
+);
+
+
+a.download =
+`OPA_LiDAR_${Date.now()}.png`;
+
+
+document.body.appendChild(
+a
+);
+
+
+a.click();
+
+
+document.body.removeChild(
+a
+);
+
+}
+
+
+catch(
+error
+){
+
+console.error(
+error
+);
+
+
+alert(
+"截图失败，请检查网络连接。"
+);
+
+}
+
+}
+
+
+
+/* =========================================================
+   32. 按钮控制
+========================================================= */
+
+function startScan(){
+
+running =
+true;
+
+}
+
+
+
+function pauseScan(){
+
+running =
+false;
+
+}
+
+
+
+function resetScan(){
+
+running =
+false;
+
+
+cloudPoints =
+[];
+
+
+cloudRanges =
+[];
+
+
+cloudVelocities =
+[];
+
+
+totalPoints =
+0;
+
+
+rangeErrors =
+[];
+
+
+shotCount =
+0;
+
+
+hitCount =
+0;
+
+
+latestMeasurement =
+null;
+
+
+scanCycleCount =
+0;
+
+
+fpsSamples =
+[];
+
+
+fpsSum =
+0;
+
+
+fps =
+0;
+
+
+fpsFrameCount =
+0;
+
+
+fpsTimer =
+performance.now();
+
+
+resetAngles();
+
+
+cloudGeometry.dispose();
+
+
+cloudGeometry =
+new THREE.BufferGeometry();
+
+
+cloud.geometry =
+cloudGeometry;
+
+
+pointText.innerText =
+"0";
+
+
+shotText.innerText =
+"0";
+
+
+hitText.innerText =
+"0";
+
+
+hitRateText.innerText =
+"0.0";
+
+
+hitOverlay.innerText =
+"0.0";
+
+
+sigmaText.innerText =
+"0.00";
+
+
+sigmaOverlay.innerText =
+"0.00";
+
+
+fpsText.innerText =
+"0";
+
+
+fpsOverlay.innerText =
+"0";
+
+
+avgFpsText.innerText =
+"0";
+
+
+avgFpsOverlay.innerText =
+"0";
+
+
+trueRangeText.innerText =
+"--";
+
+
+measuredRangeText.innerText =
+"--";
+
+
+trueVelocityText.innerText =
+"--";
+
+
+measuredVelocityText.innerText =
+"--";
+
+
+upBeatText.innerText =
+"--";
+
+
+downBeatText.innerText =
+"--";
+
+
+rangeErrorText.innerText =
+"--";
+
+
+azText.innerText =
+"0";
+
+
+elText.innerText =
+"0";
+
+
+beam.geometry.dispose();
+
+
+beam.geometry =
+new THREE.BufferGeometry();
+
+
+updateStatistics();
+
+
+updateProgress();
+
+
+updateSummary(
+false
+);
+
+
+drawSignal();
+
+
+drawFFT();
+
+
+drawHistogram();
+
+}
+
+
+
+/* =========================================================
+   33. 动画循环
+========================================================= */
+
+let previousFrameTime =
+performance.now();
+
+
+let previousChartTime =
+0;
+
+
+
+function animate(){
+
+requestAnimationFrame(
+animate
+);
+
+
+const now =
+performance.now();
+
+
+const dt =
+Math.min(
+
+0.05,
+
+(
+now -
+previousFrameTime
+)
+/
+1000
+
+);
+
+
+previousFrameTime =
+now;
+
+
+frameNumber++;
+
+
+frameText.innerText =
+frameNumber;
+
+
+frameOverlay.innerText =
+frameNumber;
+
+
+updateFPS(
+now
+);
+
+
+controls.update();
+
+
+updateCar(
+dt
+);
+
+
+if(
+running
+){
+
+const shots =
+Math.max(
+
+1,
+
+Math.round(
+
+Number(
+speedSlider.value
+)
+/
+5
+
+)
+
+);
+
+
+for(
+let i=0;
+i<shots;
+i++
+){
+
+nextScan();
+
+
+shootRay();
+
+}
+
+
+azText.innerText =
+az.toFixed(
+1
+);
+
+
+elText.innerText =
+el.toFixed(
+1
+);
+
+}
+
+
+/* 图表不必每一帧刷新 */
+
+if(
+now -
+previousChartTime >
+150
+){
+
+drawSignal();
+
+
+drawFFT();
+
+
+drawHistogram();
+
+
+updateSummary(
+false
+);
+
+
+previousChartTime =
+now;
+
+}
+
+
+renderer.render(
+
+scene,
+
+camera
+
+);
+
+}
+
+
+
+/* =========================================================
+   34. 初始化
+========================================================= */
+
+buildScene();
+
+
+updateProgress();
+
+
+updateStatistics();
+
+
+updateSummary(
+false
+);
+
+
+drawSignal();
+
+
+drawFFT();
+
+
+drawHistogram();
+
+
+animate();
+
+
+
+/* =========================================================
+   35. 窗口变化
+========================================================= */
+
+window.addEventListener(
+
+"resize",
+
+()=>{
+
+camera.aspect =
+viewer.clientWidth /
+viewer.clientHeight;
+
+
+camera.updateProjectionMatrix();
+
+
+renderer.setSize(
+
+viewer.clientWidth,
+
+viewer.clientHeight
+
+);
+
+
+drawSignal();
+
+
+drawFFT();
+
+
+drawHistogram();
+
+}
+
+);
+
+</script>
+
+</body>
+
+</html>
