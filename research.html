@@ -32,28 +32,32 @@
 
 <section class="section"><div class="container">
 <h2>1. OPA 光束扫描</h2>
-<p class="section-lead">网页中使用方位角 Az 和俯仰角 El 表示当前扫描方向。不同扫描方式本质上是不同的二维角度序列生成方法。</p>
+<p class="section-lead">光学相控阵（OPA）的核心原理是通过调控阵列中各发射单元的光相位，使远场干涉主瓣的方向发生偏转，从而实现光束的无惯性电子扫描。网页中使用方位角 Az 和俯仰角 El 表示当前扫描方向，不同扫描方式本质上是不同的二维角度序列生成方法。</p>
 <div class="grid2">
-<div class="card"><span class="tag">RASTER</span><h3>光栅扫描</h3><p>方位方向往返扫描，每完成一行后俯仰角增加一步。优点是规则、覆盖均匀、易于统计完整扫描周期。</p></div>
-<div class="card"><span class="tag">SPIRAL</span><h3>螺旋扫描</h3><p>扫描半径随时间逐步扩大，可从视场中心向外覆盖目标区域。</p></div>
-<div class="card"><span class="tag">ROSETTE</span><h3>花瓣扫描</h3><p>使用不同频率的正弦项组合形成花瓣状轨迹，适合展示非规则周期扫描的覆盖特征。</p></div>
-<div class="card"><span class="tag">RANDOM</span><h3>随机扫描</h3><p>在 FOV 内随机生成角度，可用于演示随机稀疏采样策略。</p></div>
+<div class="card"><span class="tag">RASTER</span><h3>光栅扫描</h3><p>方位方向往返逐行扫描，每完成一行后俯仰角增加一步。优点是轨迹规则、视场覆盖均匀、易于统计完整扫描周期，是最经典的扫描方式。</p></div>
+<div class="card"><span class="tag">SPIRAL</span><h3>螺旋扫描</h3><p>扫描半径随时间逐步扩大，从视场中心向外螺旋式覆盖目标区域。优点是中心区域点云密度高，适合重点区域优先观测。</p></div>
+<div class="card"><span class="tag">ROSETTE</span><h3>花瓣扫描</h3><p>使用不同频率的正弦项组合形成花瓣状轨迹。适合展示非规则周期扫描的覆盖特征，在特定场景下可提升目标捕获概率。</p></div>
+<div class="card"><span class="tag">RANDOM</span><h3>随机扫描</h3><p>在设定 FOV 内随机生成扫描角度，可用于演示随机稀疏采样策略，验证压缩感知等新型成像方法的效果。</p></div>
 </div>
 </div></section>
 
 <section class="section"><div class="container">
 <h2>2. 扫描角到三维方向</h2>
-<p class="section-lead">将角度转换为单位方向向量后，即可从 OPA 发射位置向场景发射射线。</p>
+<p class="section-lead">将二维扫描角（方位角 Az、俯仰角 El）转换为三维空间单位方向向量，是连接 OPA 波束控制与三维空间仿真的关键步骤。转换基于球面坐标系到直角坐标系的变换，公式如下：</p>
 <div class="eq">
 d = [ sin(Az) cos(El), &nbsp; sin(El), &nbsp; -cos(Az) cos(El) ]
 </div>
-<p class="small">网页中的坐标方向以当前 Three.js 场景定义为准。</p>
+<p class="small">网页中的坐标方向以当前 Three.js 场景定义为准，其中：
+
+- 方位角 Az：光束在水平面上的偏转角度；
+- 俯仰角 El：光束在垂直方向上的俯仰角度；
+- 单位向量 d 的三个分量分别对应三维空间的 x、y、z 轴方向，用于后续射线求交计算。</p>
 </div></section>
 
 <section class="section"><div class="container">
 <h2>3. 三维射线求交</h2>
-<p class="section-lead">Three.js Raycaster 接收射线起点和单位方向向量，并对目标 Mesh 集合执行碰撞检测。若命中多个表面，则选取最近交点。</p>
-<div class="note">命中交点提供“几何真值”。FMCW 模块不会直接把这个真值作为最终点云位置，而是先经过测量模型得到带误差的测量距离，再沿原方向重建点。</div>
+<p class="section-lead">三维射线求交用于模拟激光与目标的相互作用，获取几何真值数据。Three.js Raycaster 接收射线起点和单位方向向量，对目标 Mesh 集合执行碰撞检测；若命中多个表面，则选取距离最近的交点作为有效命中点。</p>
+<div class="note">命中交点提供的是几何真值：即无误差的真实距离与真实坐标。FMCW 模块不会直接把这个真值作为最终点云位置，而是先经过测量模型引入系统误差与随机噪声，得到带误差的测量距离，再沿原方向重建点云，以此模拟真实激光雷达的测量过程。</div>
 </div></section>
 
 <section class="section"><div class="container">
@@ -80,8 +84,8 @@ v = λ/4 · (f<sub>down</sub> − f<sub>up</sub>)
 <h2>5. SNR 与测量误差</h2>
 <p class="section-lead">当前浏览器版为了保证实时性，并未对每条射线生成完整长序列后执行大规模 FFT，而是保留 FMCW 频率关系并加入与 SNR 相关的频率估计误差。</p>
 <div class="grid2">
-<div class="card"><h3>高 SNR</h3><p>频率估计扰动较小，测量距离更接近真实交点，点云更紧密贴合目标表面。</p></div>
-<div class="card"><h3>低 SNR</h3><p>频率估计扰动变大，距离误差增大，点云沿视线方向出现更明显的散布。</p></div>
+<div class="card"><h3>高 SNR</h3><p>频率估计扰动小，测量距离更接近真实交点，点云更紧密贴合目标表面，测距标准差 σ 小，适合高精度感知场景。</p></div>
+<div class="card"><h3>低 SNR</h3><p>- 频率估计扰动变大，距离误差增大，点云沿视线方向出现更明显的散布，测距标准差 σ 增大；极端情况下可能出现误检与漏检，反映了弱光、远距离等恶劣条件下的系统性能。</p></div>
 </div>
 </div></section>
 
@@ -91,7 +95,7 @@ v = λ/4 · (f<sub>down</sub> − f<sub>up</sub>)
 <div class="eq">
 v<sub>radial</sub> = v⃗ · (−d⃗)
 </div>
-<p>因此同一辆车以恒定世界坐标速度运动时，随着车辆相对传感器方位变化，测得的径向速度也会改变。</p>
+<p>因此同一辆车以恒定世界坐标速度运动时，随着车辆相对传感器方位变化，测得的径向速度也会改变。当目标沿视线正方向运动时，径向速度等于真实速度大小；当目标垂直于视线方向运动时，径向速度为 0；目标横穿雷达视场的过程中，径向速度会呈现 “由大到小过零、再反向增大” 的变化规律。</p>
 </div></section>
 
 <section class="section"><div class="container">
@@ -100,7 +104,12 @@ v<sub>radial</sub> = v⃗ · (−d⃗)
 <div class="codebox">
 [x, y, z, radial_velocity]
 </div>
-<p>网页支持按测量距离或测量速度对点云着色，并可导出 CSV 用于后续分析。</p>
+<p>网页支持按测量距离或测量速度对点云着色：
+
+- 按距离着色：直观呈现场景的深度分布与目标空间轮廓；
+- 按速度着色：快速区分静止背景与运动目标，识别不同目标的运动方向与速率差异。
+
+平台支持点云数据导出为 CSV 格式，包含全部点的坐标、速度等完整信息，可导入专业工具开展后续点云处理、目标识别算法验证与系统性能分析。</p>
 </div></section>
 </main>
 
