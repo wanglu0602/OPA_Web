@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>项目说明 | OPA FMCW LiDAR</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html">OPA <span>LiDAR Research</span></a>
+    <nav class="menu">
+      <a href="index.html">首页</a>
+      <a href="project.html">项目介绍</a>
+      <a href="research.html">原理与方法</a>
+      <a href="simulation.html">在线仿真</a>
+      <a href="data.html">数据与指标</a>
+      <a href="about.html">项目说明</a>
+    </nav>
+  </div>
+</header>
+
+
+<main>
+<section class="page-title"><div class="container">
+<div class="kicker">Project Information</div>
+<h1>项目说明</h1>
+<p class="section-lead">介绍当前网站的技术结构、页面关系、使用方式以及后续扩展方向。</p>
+</div></section>
+
+<section class="section"><div class="container">
+<h2>1. 网站结构</h2>
+<div class="codebox">
+index.html&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;— 首页<br>
+project.html&nbsp;&nbsp;&nbsp;&nbsp;— 项目介绍<br>
+research.html&nbsp;&nbsp;&nbsp;— 原理与方法<br>
+simulation.html&nbsp;— 在线仿真（保持原有仿真页面代码不变）<br>
+data.html&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;— 数据与指标<br>
+about.html&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;— 项目说明<br>
+assets/style.css&nbsp;— 其它页面的统一样式
+</div>
+</div></section>
+
+<section class="section"><div class="container">
+<h2>2. 在线仿真页面为什么保持不变</h2>
+<p class="section-lead">你的仿真页已经完成了核心交互和算法展示，因此本网站采用“外部科研展示页面 + 原仿真页面”的结构，而不是继续修改仿真页面本身。</p>
+<div class="note">这意味着以后你如果继续改仿真，只需要替换 simulation.html，而首页、项目介绍、原理、数据指标和项目说明页面不需要一起重写。</div>
+</div></section>
+
+<section class="section"><div class="container">
+<h2>3. 技术栈</h2>
+<div>
+<span class="badge">HTML5</span>
+<span class="badge">CSS3</span>
+<span class="badge">JavaScript</span>
+<span class="badge">Three.js</span>
+<span class="badge">Raycaster</span>
+<span class="badge">Canvas</span>
+<span class="badge">GitHub Pages</span>
+</div>
+</div></section>
+
+<section class="section"><div class="container">
+<h2>4. 当前边界</h2>
+<div class="grid2">
+<div class="card"><h3>当前是浏览器实时模型</h3><p>为了保证网页流畅，FMCW 部分使用实时近似模型和频率估计扰动，而不是对每条射线都执行高成本长序列完整 FFT。</p></div>
+<div class="card"><h3>当前三维场景是简化几何</h3><p>目标使用 Three.js 基本几何体构建。后续可以加入 STL、OBJ、glTF 等真实模型和复杂三角网格。</p></div>
+</div>
+</div></section>
+
+<section class="section"><div class="container">
+<h2>5. 后续可扩展方向</h2>
+<div class="grid3">
+<div class="card"><h3>真实 I/Q 与 FFT</h3><p>加入完整采样序列、窗函数、FFT、峰值插值和多目标谱峰检测。</p></div>
+<div class="card"><h3>Python 后端</h3><p>使用 FastAPI 执行高计算量算法、保存实验数据和管理不同仿真任务。</p></div>
+<div class="card"><h3>复杂目标模型</h3><p>支持真实车辆、道路、建筑以及用户上传的三维场景。</p></div>
+<div class="card"><h3>实验记录</h3><p>自动保存参数、σ、命中率、FPS 和 CSV 数据，形成可复现实验记录。</p></div>
+<div class="card"><h3>结果页面</h3><p>生成论文风格曲线，如 SNR-σ、带宽-σ、扫描模式-命中率等。</p></div>
+<div class="card"><h3>论文/答辩展示</h3><p>加入摘要、论文 PDF、视频演示、实验结论和项目联系方式。</p></div>
+</div>
+</div></section>
+
+<section class="section"><div class="container">
+<h2>6. GitHub Pages 更新方式</h2>
+<ol class="list-clean">
+<li>首页等科研页面发生变化：重新上传对应 HTML/CSS 文件。</li>
+<li>仿真代码发生变化：只替换 simulation.html。</li>
+<li>保持所有文件位于仓库根目录，assets 文件夹与 HTML 页面同级。</li>
+<li>GitHub Pages 会在提交后自动重新部署。</li>
+</ol>
+</div></section>
+</main>
+
+<footer class="footer"><div class="container">OPA FMCW LiDAR Research Website · GitHub Pages</div></footer>
+</body>
+</html>

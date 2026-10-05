@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>原理与方法 | OPA FMCW LiDAR</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html">OPA <span>LiDAR Research</span></a>
+    <nav class="menu">
+      <a href="index.html">首页</a>
+      <a href="project.html">项目介绍</a>
+      <a href="research.html">原理与方法</a>
+      <a href="simulation.html">在线仿真</a>
+      <a href="data.html">数据与指标</a>
+      <a href="about.html">项目说明</a>
+    </nav>
+  </div>
+</header>
+
+
+<main>
+<section class="page-title"><div class="container">
+<div class="kicker">Principles & Methods</div>
+<h1>原理与方法</h1>
+<p class="section-lead">从 OPA 波束扫描到 FMCW beat frequency，再到三维点云重建的核心方法说明。</p>
+</div></section>
+
+<section class="section"><div class="container">
+<h2>1. OPA 光束扫描</h2>
+<p class="section-lead">网页中使用方位角 Az 和俯仰角 El 表示当前扫描方向。不同扫描方式本质上是不同的二维角度序列生成方法。</p>
+<div class="grid2">
+<div class="card"><span class="tag">RASTER</span><h3>光栅扫描</h3><p>方位方向往返扫描，每完成一行后俯仰角增加一步。优点是规则、覆盖均匀、易于统计完整扫描周期。</p></div>
+<div class="card"><span class="tag">SPIRAL</span><h3>螺旋扫描</h3><p>扫描半径随时间逐步扩大，可从视场中心向外覆盖目标区域。</p></div>
+<div class="card"><span class="tag">ROSETTE</span><h3>花瓣扫描</h3><p>使用不同频率的正弦项组合形成花瓣状轨迹，适合展示非规则周期扫描的覆盖特征。</p></div>
+<div class="card"><span class="tag">RANDOM</span><h3>随机扫描</h3><p>在 FOV 内随机生成角度，可用于演示随机稀疏采样策略。</p></div>
+</div>
+</div></section>
+
+<section class="section"><div class="container">
+<h2>2. 扫描角到三维方向</h2>
+<p class="section-lead">将角度转换为单位方向向量后，即可从 OPA 发射位置向场景发射射线。</p>
+<div class="eq">
+d = [ sin(Az) cos(El), &nbsp; sin(El), &nbsp; -cos(Az) cos(El) ]
+</div>
+<p class="small">网页中的坐标方向以当前 Three.js 场景定义为准。</p>
+</div></section>
+
+<section class="section"><div class="container">
+<h2>3. 三维射线求交</h2>
+<p class="section-lead">Three.js Raycaster 接收射线起点和单位方向向量，并对目标 Mesh 集合执行碰撞检测。若命中多个表面，则选取最近交点。</p>
+<div class="note">命中交点提供“几何真值”。FMCW 模块不会直接把这个真值作为最终点云位置，而是先经过测量模型得到带误差的测量距离，再沿原方向重建点。</div>
+</div></section>
+
+<section class="section"><div class="container">
+<h2>4. FMCW 距离与速度</h2>
+<p class="section-lead">设调频带宽为 B、单个 chirp 周期为 Tc、调频斜率为 k=B/Tc。真实距离为 R，往返传播时延为 τ=2R/c。</p>
+<div class="eq">
+k = B / Tc<br>
+τ = 2R / c<br>
+f<sub>D</sub> = 2v / λ
+</div>
+<p>网页采用上下扫频形式：</p>
+<div class="eq">
+f<sub>up</sub> = kτ − f<sub>D</sub><br>
+f<sub>down</sub> = kτ + f<sub>D</sub>
+</div>
+<p>于是可以由两者的和、差得到测距与测速：</p>
+<div class="eq">
+R = cTc/(2B) · (f<sub>up</sub> + f<sub>down</sub>)/2<br>
+v = λ/4 · (f<sub>down</sub> − f<sub>up</sub>)
+</div>
+</div></section>
+
+<section class="section"><div class="container">
+<h2>5. SNR 与测量误差</h2>
+<p class="section-lead">当前浏览器版为了保证实时性，并未对每条射线生成完整长序列后执行大规模 FFT，而是保留 FMCW 频率关系并加入与 SNR 相关的频率估计误差。</p>
+<div class="grid2">
+<div class="card"><h3>高 SNR</h3><p>频率估计扰动较小，测量距离更接近真实交点，点云更紧密贴合目标表面。</p></div>
+<div class="card"><h3>低 SNR</h3><p>频率估计扰动变大，距离误差增大，点云沿视线方向出现更明显的散布。</p></div>
+</div>
+</div></section>
+
+<section class="section"><div class="container">
+<h2>6. 径向速度</h2>
+<p class="section-lead">LiDAR 测得的是目标速度在视线方向上的投影，而不是车辆真实平移速度本身。</p>
+<div class="eq">
+v<sub>radial</sub> = v⃗ · (−d⃗)
+</div>
+<p>因此同一辆车以恒定世界坐标速度运动时，随着车辆相对传感器方位变化，测得的径向速度也会改变。</p>
+</div></section>
+
+<section class="section"><div class="container">
+<h2>7. 4D 点云</h2>
+<p class="section-lead">每个有效点包含三维位置和径向速度信息。</p>
+<div class="codebox">
+[x, y, z, radial_velocity]
+</div>
+<p>网页支持按测量距离或测量速度对点云着色，并可导出 CSV 用于后续分析。</p>
+</div></section>
+</main>
+
+<footer class="footer"><div class="container">OPA FMCW LiDAR Research Website · GitHub Pages</div></footer>
+</body>
+</html>
