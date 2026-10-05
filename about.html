@@ -43,14 +43,9 @@ assets/style.css&nbsp;— 其它页面的统一样式
 </div>
 </div></section>
 
-<section class="section"><div class="container">
-<h2>2. 在线仿真页面为什么保持不变</h2>
-<p class="section-lead">你的仿真页已经完成了核心交互和算法展示，因此本网站采用“外部科研展示页面 + 原仿真页面”的结构，而不是继续修改仿真页面本身。</p>
-<div class="note">这意味着以后你如果继续改仿真，只需要替换 simulation.html，而首页、项目介绍、原理、数据指标和项目说明页面不需要一起重写。</div>
-</div></section>
 
 <section class="section"><div class="container">
-<h2>3. 技术栈</h2>
+<h2>2. 技术栈</h2>
 <div>
 <span class="badge">HTML5</span>
 <span class="badge">CSS3</span>
@@ -63,7 +58,7 @@ assets/style.css&nbsp;— 其它页面的统一样式
 </div></section>
 
 <section class="section"><div class="container">
-<h2>4. 当前边界</h2>
+<h2>3. 当前边界</h2>
 <div class="grid2">
 <div class="card"><h3>当前是浏览器实时模型</h3><p>为了保证网页流畅，FMCW 部分使用实时近似模型和频率估计扰动，而不是对每条射线都执行高成本长序列完整 FFT。</p></div>
 <div class="card"><h3>当前三维场景是简化几何</h3><p>目标使用 Three.js 基本几何体构建。后续可以加入 STL、OBJ、glTF 等真实模型和复杂三角网格。</p></div>
@@ -71,7 +66,7 @@ assets/style.css&nbsp;— 其它页面的统一样式
 </div></section>
 
 <section class="section"><div class="container">
-<h2>5. 后续可扩展方向</h2>
+<h2>4. 后续可扩展方向</h2>
 <div class="grid3">
 <div class="card"><h3>真实 I/Q 与 FFT</h3><p>加入完整采样序列、窗函数、FFT、峰值插值和多目标谱峰检测。</p></div>
 <div class="card"><h3>Python 后端</h3><p>使用 FastAPI 执行高计算量算法、保存实验数据和管理不同仿真任务。</p></div>
@@ -83,7 +78,7 @@ assets/style.css&nbsp;— 其它页面的统一样式
 </div></section>
 
 <section class="section"><div class="container">
-<h2>6. GitHub Pages 更新方式</h2>
+<h2>5. GitHub Pages 更新方式</h2>
 <ol class="list-clean">
 <li>首页等科研页面发生变化：重新上传对应 HTML/CSS 文件。</li>
 <li>仿真代码发生变化：只替换 simulation.html。</li>
